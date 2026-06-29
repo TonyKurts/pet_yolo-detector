@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Подсчет посетителей магазина на фотографии" />
+        <title>People Meter — подсчет посетителей</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="/static/styles.css" />
+        <script defer src="/static/app.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    </head>
+    <body>
+        <div class="ambient ambient-one"></div>
+        <div class="ambient ambient-two"></div>
+
+        <main x-data="visitorCounter" x-init="init()" class="shell">
+            <header class="hero reveal">
+                <p class="eyebrow">Computer vision / YOLOv11</p>
+
+                <div class="availability" :class="busy ? 'is-busy' : 'is-ready'">
+                    <i></i>
+                    <span x-text="busy ? 'Система занята' : 'Готово к работе'"></span>
+                </div>
+            </header>
+
+            <section class="workspace reveal delay-one" aria-labelledby="upload-title">
+                <div class="workspace-copy">
+                    <h2 id="upload-title">Загрузите кадр</h2>
+                    <p>PNG или JPEG, до 15 МБ. Модель найдет на изображении только людей.</p>
+                </div>
+
+                <label class="dropzone" :class="{'has-file': selectedFile, 'is-disabled': busy}" @dragover.prevent @drop.prevent="handleDrop($event)">
+                    <input x-ref="fileInput" type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" :disabled="busy" @change="selectFile($event.target.files[0])" />
+                    <span class="drop-icon" aria-hidden="true">↗</span>
+                    <span class="drop-main" x-text="selectedFile ? selectedFile.name : 'Перетащите файл сюда'"></span>
+                    <span class="drop-meta" x-text="selectedFile ? formatBytes(selectedFile.size) : 'или нажмите, чтобы выбрать'"></span>
+                </label>
+
+                <div class="submit-row">
+                    <p class="message error" x-show="error" x-text="error" x-transition></p>
+                    <p class="message" x-show="!error && busy">Изображение обрабатывается. История обновится автоматически.</p>
+                    <button class="primary-button" type="button" :disabled="!canSubmit" @click="upload()">
+                        <span x-text="busy ? 'Обработка…' : 'Запустить анализ'"></span>
+                        <span aria-hidden="true">→</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="history reveal delay-two" aria-labelledby="history-title">
+                <div class="history-heading">
+                    <div>
+                        <p class="eyebrow">Архив запусков</p>
+                        <h2 id="history-title">История обработок</h2>
+                    </div>
+                    <a class="export-button" href="/api/export" download="export.csv">
+                        <span>Скачать CSV</span>
+                        <span aria-hidden="true">↓</span>
+                    </a>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Дата создания</th>
+                                <th>Имя файла</th>
+                                <th>Время, сек.</th>
+                                <th>Людей</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="item in history" :key="item.id">
+                                <tr>
+                                    <td data-label="Дата" x-text="formatDate(item.created_at)"></td>
+                                    <td data-label="Файл">
+                                        <a x-show="item.file_path" :href="storageUrl(item.file_path)" :download="item.filename" x-text="item.filename"></a>
+                                        <span x-show="!item.file_path" x-text="item.filename"></span>
+                                    </td>
+                                    <td data-label="Время" x-text="item.processing_time ?? '—'"></td>
+                                    <td data-label="Людей" class="count" x-text="item.object_count ?? '—'"></td>
+                                    <td data-label="Статус">
+                                        <span class="status-pill" :class="`status-${item.status}`" x-text="statusLabel(item.status)"></span>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="history.length === 0 && !loading">
+                                <td colspan="5" class="empty-state">Здесь появится результат первой обработки.</td>
+                            </tr>
+                            <tr x-show="loading && history.length === 0">
+                                <td colspan="5" class="empty-state">Загружаем историю…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </body>
+</html>

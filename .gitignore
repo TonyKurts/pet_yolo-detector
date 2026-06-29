@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+visitors.db
+visitors.db-shm
+visitors.db-wal
+*.pt
+storage/originals/*
+storage/processed/*
+!storage/originals/.gitkeep
+!storage/processed/.gitkeep
